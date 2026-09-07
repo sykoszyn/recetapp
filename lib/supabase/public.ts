@@ -1,4 +1,5 @@
 import { createClient as createSupabaseClient } from '@supabase/supabase-js';
+import { disableRealtimeOption } from './disable-realtime';
 
 /**
  * Cliente público de solo lectura, sin manejo de cookies/sesión.
@@ -9,5 +10,7 @@ import { createClient as createSupabaseClient } from '@supabase/supabase-js';
  * anon key alcanza — no hace falta sesión de usuario.
  */
 export function createPublicClient() {
-  return createSupabaseClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
+  return createSupabaseClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, {
+    ...disableRealtimeOption,
+  });
 }

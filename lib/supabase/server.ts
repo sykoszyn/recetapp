@@ -1,5 +1,6 @@
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
+import { disableRealtimeOption } from './disable-realtime';
 
 export function createClient() {
   const cookieStore = cookies();
@@ -8,6 +9,7 @@ export function createClient() {
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
+      ...disableRealtimeOption,
       cookies: {
         getAll() {
           return cookieStore.getAll();
