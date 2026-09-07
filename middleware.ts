@@ -15,6 +15,23 @@ export async function middleware(request: NextRequest) {
   }
 }
 
+// Solo corre donde hace falta: rutas protegidas (para redirigir a /login) y
+// rutas de auth (para redirigir a /feed si ya hay sesión). El resto —
+// landing, /explore, /recipe/*, /user/*, /post/*, /api/*, assets — es
+// público o ya se protege solo en el propio Server Component/Server Action,
+// así que correr el middleware ahí solo agrega una llamada de red de más
+// (auth.getUser() contra Supabase) en cada navegación sin ganar nada.
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon|icons|manifest.json|sw.js|.*\\.(?:svg|png|jpg|jpeg|webp|gif)$).*)'],
+  matcher: [
+    '/feed/:path*',
+    '/create/:path*',
+    '/saved/:path*',
+    '/notifications/:path*',
+    '/settings/:path*',
+    '/onboarding/:path*',
+    '/login',
+    '/register',
+    '/forgot-password',
+    '/reset-password',
+  ],
 };

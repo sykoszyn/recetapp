@@ -1,6 +1,5 @@
-// Genera los íconos PWA (placeholder) sin dependencias externas: un cuadrado
-// con esquinas redondeadas, color primario de la marca y un plato/tenedor
-// simplificado. Reemplazar por artwork final antes de publicar en las stores.
+// Genera los íconos PWA a partir del mismo isotipo que components/logo.tsx
+// (gorro de chef sobre un cuadrado con gradiente), sin dependencias externas.
 import { deflateSync } from 'node:zlib';
 import { writeFileSync, mkdirSync } from 'node:fs';
 import { join, dirname } from 'node:path';
@@ -10,8 +9,9 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const outDir = join(__dirname, '..', 'public', 'icons');
 mkdirSync(outDir, { recursive: true });
 
-const PRIMARY = [237, 91, 47]; // ~ hsl(14, 89%, 55%)
-const WHITE = [255, 250, 245];
+const GRADIENT_FROM = [237, 91, 47]; // hsl(14, 89%, 58%)
+const GRADIENT_TO = [240, 166, 43]; // hsl(40, 95%, 55%)
+const WHITE = [255, 255, 255];
 
 function crc32(buf) {
   let c;
@@ -60,42 +60,6 @@ function encodePNG(width, height, rgba) {
   return Buffer.concat([signature, chunk('IHDR', ihdr), chunk('IDAT', idat), chunk('IEND', Buffer.alloc(0))]);
 }
 
-function roundedSquareIcon(size, { padding = 0.08, radius = 0.22 } = {}) {
-  const rgba = Buffer.alloc(size * size * 4);
-  const pad = size * padding;
-  const r = size * radius;
-  const cx = size / 2;
-  const cy = size / 2;
-
-  const plateR = size * 0.3;
-  const innerR = size * 0.19;
-
-  for (let y = 0; y < size; y++) {
-    for (let x = 0; x < size; x++) {
-      const i = (y * size + x) * 4;
-      let color = null;
-
-      const inRoundedSquare = isInRoundedRect(x, y, pad, pad, size - pad, size - pad, r);
-      if (inRoundedSquare) {
-        color = PRIMARY;
-        const dPlate = Math.hypot(x - cx, y - cy);
-        if (dPlate < plateR) color = WHITE;
-        if (dPlate < innerR) color = PRIMARY;
-      }
-
-      if (color) {
-        rgba[i] = color[0];
-        rgba[i + 1] = color[1];
-        rgba[i + 2] = color[2];
-        rgba[i + 3] = 255;
-      } else {
-        rgba[i + 3] = 0;
-      }
-    }
-  }
-  return rgba;
-}
-
 function isInRoundedRect(x, y, x0, y0, x1, y1, r) {
   if (x < x0 || x > x1 || y < y0 || y > y1) return false;
   const inCornerZone =
@@ -114,21 +78,78 @@ function isInRoundedRect(x, y, x0, y0, x1, y1, r) {
   return corners.some(([ccx, ccy]) => Math.hypot(x - ccx, y - ccy) <= r);
 }
 
+function lerpColor(a, b, t) {
+  return [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
+}
+
+// Mismo isotipo que components/logo.tsx (viewBox 24x24): cuadrado con
+// esquinas redondeadas (rx=7) + gorro de chef blanco (3 círculos + banda).
+const VIEWBOX = 24;
+
+function chefHatIcon(size, { contentScale = 1, squareCorners = false } = {}) {
+  const rgba = Buffer.alloc(size * size * 4);
+  const scale = (size * contentScale) / VIEWBOX;
+  const offset = (size - VIEWBOX * scale) / 2;
+  const toPx = (v) => offset + v * scale;
+
+  const rectRadius = squareCorners ? scale * 0.5 : scale * 7;
+  const x0 = toPx(0);
+  const y0 = toPx(0);
+  const x1 = toPx(VIEWBOX);
+  const y1 = toPx(VIEWBOX);
+
+  const circles = [
+    { cx: toPx(7.5), cy: toPx(13.2), r: scale * 3 },
+    { cx: toPx(16.5), cy: toPx(13.2), r: scale * 3 },
+    { cx: toPx(12), cy: toPx(10.8), r: scale * 4.6 },
+  ];
+  const band = {
+    x0: toPx(6.5),
+    y0: toPx(16.2),
+    x1: toPx(6.5 + 11),
+    y1: toPx(16.2 + 3.4),
+    r: scale * 1.7,
+  };
+
+  for (let y = 0; y < size; y++) {
+    for (let x = 0; x < size; x++) {
+      const i = (y * size + x) * 4;
+      const inBackground = isInRoundedRect(x, y, x0, y0, x1, y1, rectRadius);
+      if (!inBackground) {
+        rgba[i + 3] = 0;
+        continue;
+      }
+
+      const t = (x + y) / (2 * size);
+      let color = lerpColor(GRADIENT_FROM, GRADIENT_TO, t);
+
+      const inHat = circles.some((c) => Math.hypot(x - c.cx, y - c.cy) <= c.r) || isInRoundedRect(x, y, band.x0, band.y0, band.x1, band.y1, band.r);
+      if (inHat) color = WHITE;
+
+      rgba[i] = Math.round(color[0]);
+      rgba[i + 1] = Math.round(color[1]);
+      rgba[i + 2] = Math.round(color[2]);
+      rgba[i + 3] = 255;
+    }
+  }
+  return rgba;
+}
+
 const sizes = [
   { name: 'icon-192.png', size: 192 },
   { name: 'icon-512.png', size: 512 },
-  { name: 'icon-maskable-512.png', size: 512, padding: 0.16 },
-  { name: 'apple-touch-icon.png', size: 180, padding: 0.02, radius: 0.001 },
+  { name: 'icon-maskable-512.png', size: 512, contentScale: 0.7 },
+  { name: 'apple-touch-icon.png', size: 180, squareCorners: true },
 ];
 
-for (const { name, size, padding, radius } of sizes) {
-  const rgba = roundedSquareIcon(size, { padding, radius });
+for (const { name, size, contentScale, squareCorners } of sizes) {
+  const rgba = chefHatIcon(size, { contentScale, squareCorners });
   const png = encodePNG(size, size, rgba);
   writeFileSync(join(outDir, name), png);
   console.log(`✓ ${name}`);
 }
 
 // favicon simple de 32x32
-const faviconRgba = roundedSquareIcon(32, { padding: 0.06, radius: 0.25 });
-writeFileSync(join(outDir, '..', 'favicon.ico').replace('.ico', '-32.png'), encodePNG(32, 32, faviconRgba));
+const faviconRgba = chefHatIcon(32);
+writeFileSync(join(outDir, '..', 'favicon-32.png'), encodePNG(32, 32, faviconRgba));
 console.log('✓ favicon-32.png');
