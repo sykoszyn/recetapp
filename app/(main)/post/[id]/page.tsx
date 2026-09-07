@@ -6,8 +6,7 @@ import { listComments } from '@/services/comments';
 import { PostFeedCard } from '@/components/feed/post-feed-card';
 import { CommentSection } from '@/components/comments/comment-section';
 import { Separator } from '@/components/ui/separator';
-
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000';
+import { siteUrl } from '@/lib/site-url';
 
 export async function generateMetadata({ params }: { params: { id: string } }): Promise<Metadata> {
   const supabase = createClient();

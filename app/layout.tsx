@@ -4,10 +4,9 @@ import './globals.css';
 import { ThemeProvider } from '@/components/theme-provider';
 import { Toaster } from '@/components/ui/toaster';
 import { ServiceWorkerRegister } from '@/components/pwa/sw-register';
+import { siteUrl } from '@/lib/site-url';
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-sans', display: 'swap' });
-
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000';
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),

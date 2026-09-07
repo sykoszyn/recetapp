@@ -2,14 +2,13 @@
 
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
+import { siteUrl } from '@/lib/site-url';
 import { forgotPasswordSchema, loginSchema, registerSchema, resetPasswordSchema } from './schemas';
 
 export interface ActionResult {
   error?: string;
   success?: boolean;
 }
-
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000';
 
 export async function signUpAction(input: unknown): Promise<ActionResult> {
   const parsed = registerSchema.safeParse(input);
